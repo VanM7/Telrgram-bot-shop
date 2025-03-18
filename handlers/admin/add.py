@@ -24,6 +24,8 @@ product_cb = CallbackData('product', 'id', 'action')
 
 add_product = '➕ Добавить товар'
 delete_category = '🗑️ Удалить категорию'
+back_message = 'Назад'
+menu_message = 'Меню'
 
 
 @dp.message_handler(IsAdmin(), text=settings)
@@ -62,6 +64,7 @@ async def category_callback_handler(query: CallbackQuery, callback_data: dict, s
     await state.update_data(category_index=category_idx)
     await show_products(query.message, products, category_idx)
 
+
 async def show_products(m, products, category_ind):
     await bot.send_chat_action(m.chat.id, ChatActions.TYPING)
 
@@ -76,9 +79,8 @@ async def show_products(m, products, category_ind):
                              caption=text,
                              reply_markup=markup)
 
-    markup =ReplyKeyboardMarkup()
-    markup.add(add_product)
-    markup.add(delete_category)
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
+    markup.row(add_product, delete_category, back_message,menu_message)
 
     await  m.answer('Хотите что-нибудь добавить или удалить?',
                    reply_markup=markup)
@@ -236,3 +238,8 @@ async  def process_price_invalid(message: Message, state: FSMContext):
 @dp.message_handler(IsAdmin(),lambda message: message.text not in [back_message, all_right_message], state=ProductState.confirm)
 async def process_confirm_invalid(message: Message, state: FSMContext):
     await message.answer('Такого варианта не было')
+
+@dp.message_handler(IsAdmin(), text=back_message)
+async def process_back_to_settings(message: Message):
+    await message.answer('Возвращаюсь в настройки...', reply_markup=ReplyKeyboardRemove())
+    await process_settings(message)

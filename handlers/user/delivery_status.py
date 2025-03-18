@@ -3,6 +3,7 @@ from loader import dp,db
 from .menu import delivery_status, orders
 from filters import IsUser
 
+
 @dp.message_handler(IsUser(), text=delivery_status)
 async def process_delivery_status(message: Message):
     orders = db.fetchall('SELECT * FROM orders WHERE cid=?',(message.chat.id,))
@@ -23,3 +24,4 @@ async  def delivery_status_answer(message, orders):
         res += answer[0]
         res += '\n\n'
     await message.answer(res)
+

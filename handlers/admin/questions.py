@@ -4,7 +4,7 @@ from aiogram.utils.callback_data import CallbackData
 from keyboards.default.markups import all_right_message, cancel_message, \
     submit_markup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, \
-    InlineKeyboardButton, ReplyKeyboardRemove
+    InlineKeyboardButton, ReplyKeyboardRemove,ReplyKeyboardMarkup
 from aiogram.types.chat import ChatActions
 
 from loader import dp, db, bot
@@ -13,6 +13,10 @@ from states import AnswerState
 
 question_cb = CallbackData('question', 'cid', 'action')
 
+def get_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
+    markup.add('Меню')
+    return markup
 
 @dp.message_handler(IsAdmin(), text=questions)
 async def process_questions(message: Message):
@@ -68,7 +72,8 @@ async def process_send_answer(message: Message, state: FSMContext):
         db.query('DELETE FROM questions WHERE cid=?', (cid,))
         text = f'Вопрос: <b>{question}</b>\n\nОтвет: <b>{answer}</b>'
 
-        await message.answer('Отправлено!', reply_markup=ReplyKeyboardRemove())
+        await message.answer('Отправлено!',reply_markup=get_menu_keyboard())
         await bot.send_message(cid, text)
+
 
     await state.finish()

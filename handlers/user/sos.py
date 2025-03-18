@@ -3,8 +3,19 @@ from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from keyboards.default.markups import all_right_message, cancel_message,submit_markup
 from aiogram.types import Message
 from states import SosState
-from filters import IsUser
 from loader import dp, db
+import logging
+
+# Настройка логирования для отладки
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Локальная функция для создания простой клавиатуры с кнопкой Меню
+def get_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add('Меню')  # Добавляем кнопку Меню
+    logger.info("Клавиатура создана: %s", markup.keyboard)  # Отладочный вывод
+    return markup
 
 @dp.message_handler(commands='sos')
 async def cmd_sos(message: Message):
@@ -32,18 +43,26 @@ async def process_cancel(message: Message, state: FSMContext):
     await message.answer('Oтмененo!',reply_markup=ReplyKeyboardRemove())
     await state.finish()
 
-@dp.message_handler(text=all_right_message,state=SosState.submit)
-async  def process_submit(message: Message, state: FSMContext):
+
+@dp.message_handler(text=all_right_message, state=SosState.submit)
+async def process_submit(message: Message, state: FSMContext):
     cid = message.chat.id
-    if db.fetchone('SELECT * FROM questions WHERE cid=?',(cid,)) is None:
-        async with state.proxy() as data:
-            db.query('INSERT INTO questions VALUES (?,?)',(cid, data['question']))
-        await message.answer('Oтправленo!', reply_markup=ReplyKeyboardRemove())
+    markup = get_menu_keyboard()
 
-    else:
+    try:
+        result = db.fetchone('SELECT * FROM questions WHERE cid=?', (cid,))
+        logger.info("Результат fetchone: %s", result)
+        if result is None:
+            async with state.proxy() as data:
+                db.query('INSERT INTO questions VALUES (?,?)', (cid, data['question']))
+            await message.answer('Отправлено!', reply_markup=markup)
+        else:
+            await message.answer(
+                'Превышен лимит на количество задаваемых вопросов.',
+                reply_markup=markup
+            )
+    except Exception as e:
+        logger.error("Ошибка при работе с базой данных: %s", e)
+        await message.answer('Произошла ошибка. Попробуйте позже.', reply_markup=markup)
 
-        await message.answer(
-            'Превышен лимит на количество задаваемых вопросов.',
-            reply_markup=ReplyKeyboardRemove())
-
-        await state.finish()
+    await state.finish()

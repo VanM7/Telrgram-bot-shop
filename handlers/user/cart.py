@@ -1,5 +1,3 @@
-import logging
-
 from filters import IsUser
 from aiogram.types import Message
 from aiogram.dispatcher import FSMContext
@@ -14,6 +12,11 @@ from keyboards.inline.products_from_catalog import product_cb
 from states import CheckoutState
 from keyboards.default.markups import *
 
+
+def get_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
+    markup.add('Меню')  # Добавляем кнопку Меню
+    return markup
 
 @dp.message_handler(IsUser(), text=cart)
 async def process_cart(message: Message, state: FSMContext):
@@ -57,7 +60,7 @@ async def process_cart(message: Message, state: FSMContext):
 
         if order_cost != 0:
             markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
-            markup.add('📦 Оформить заказ')
+            markup.row('📦 Оформить заказ', 'Меню')
 
             await message.answer('Перейти к оформлению?',
                                  reply_markup=markup)
@@ -129,6 +132,7 @@ async  def checkout(message, state):
 
     await message.answer(f'{answer}\nОбщая сумма заказа: {total_price}₽.',
                          reply_markup=check_markup())
+
 
 @dp.message_handler(IsUser(),
                     lambda message: message.text not in [all_right_message,back_message],state=CheckoutState.check_cart)
@@ -214,7 +218,7 @@ async  def process_confirm(message: Message,state: FSMContext):
         await message.answer(
             'Ок! Ваш заказ уже в пути 🚀\nИмя: <b>' + data[
                 'name'] + '</b>\nАдрес: <b>' + data['address'] + '</b>',
-            reply_markup=markup)
+          reply_markup=get_menu_keyboard())
 
     await state.finish()
 
